@@ -15,21 +15,18 @@ app.get('/products', (req, res) => {
 // Returns all product level information for a specified product id.
 // GET /products/:product_id
 app.get('/products/:product_id', (req, res) => {
-  console.log(req)
   res.send(req.params.product_id)
 });
 
 // Returns the all styles available for the given product.
 // GET /products/:product_id/styles
 app.get('/products/:product_id/styles', (req, res) => {
-  console.log(req)
   res.send(req.params.product_id)
 });
 
 // Returns the id's of products related to the product specified.
 // GET /products/:product_id/related
 app.get('/products/:product_id/related', (req, res) => {
-  console.log(req)
   res.send(req.params.product_id)
 });
 
