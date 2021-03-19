@@ -1,10 +1,7 @@
 const { Client } = require('pg')
 const client = new Client({
   user: 'aubreybachant',
-  database: 'myTEST',
+  database: 'products',
 })
 
-client.connect()
-  .then(() => console.log('successful connection'))
-  .catch((e) => console.error(e))
-  .finally(() => client.end())
+  module.exports = client;
