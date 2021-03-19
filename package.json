@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/SDC-Who/Atelier-Products#readme",
   "dependencies": {
+    "express": "^4.17.1",
     "node": "^15.10.0",
     "pg": "^8.5.1"
   }
