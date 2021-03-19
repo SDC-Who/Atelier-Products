@@ -1,4 +1,5 @@
 const express = require('express');
+const client = require('./database');
 const app = express();
 const port = 3000;
 
@@ -9,7 +10,9 @@ app.get('/', (req, res) => {
 // Retrieves the list of products.
 // GET /products
 app.get('/products', (req, res) => {
-  res.send('the list of products')
+  client.query('SELECT * FROM products')
+  .then(dbRes => res.send(dbRes.rows))
+  .catch(e => console.error(e))
 });
 
 // Returns all product level information for a specified product id.
@@ -32,5 +35,6 @@ app.get('/products/:product_id/related', (req, res) => {
 
 
 app.listen(port, () => {
+  client.connect();
   console.log(`Atelier Products listening at http://localhost:${port}`)
 })
