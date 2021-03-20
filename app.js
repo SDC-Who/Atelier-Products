@@ -15,41 +15,44 @@ app.use(bodyParser.json())
 
 
 // Retrieves the list of products.
-// GET /products
 app.get('/products', (req, res) => {
   let page = 1;
   let count = 5;
   // update page and count values if client sent params for page or count
-  if(req.body.page) {
+  if (req.body.page) {
     page = parseInt(req.body.page);
   };
-  if(req.body.count) {
+  if (req.body.count) {
     count = parseInt(req.body.count);
   };
 
-  // SELECT * FROM reviews WHERE product_id = ${product_id} LIMIT ${response.count} OFFSET ${response.page * response.count}
-
+  // select count number of products starting at page number intervals of count
   const queryText = `SELECT * FROM products LIMIT ${count} OFFSET ${(page * count) - count}`;
   client.query(queryText)
-  .then(dbRes => res.send(dbRes.rows))
-  .catch(e => console.error(e))
+    .then(dbRes => res.send(dbRes.rows))
+    .catch(e => console.error(e))
 });
 
 // Returns all product level information for a specified product id.
-// GET /products/:product_id
 app.get('/products/:product_id', (req, res) => {
-  console.log(req.body)
-  res.send(req.params.product_id)
+  const id = [req.params.product_id];
+  // WHERE product_id = ${id}
+  const queryText = `SELECT p.product_id, p.product_name, p.slogan, p.product_description, p.category, p.default_price,
+    f.feature_name, f.feature_value
+    FROM products p, features f
+    WHERE p.product_id=$1 AND f.product_id=$1;`
+
+  client.query(queryText, id)
+    .then(dbRes => res.send(dbRes.rows))
+    .catch(e => console.error(e))
 });
 
 // Returns the all styles available for the given product.
-// GET /products/:product_id/styles
 app.get('/products/:product_id/styles', (req, res) => {
   res.send(req.params.product_id)
 });
 
 // Returns the id's of products related to the product specified.
-// GET /products/:product_id/related
 app.get('/products/:product_id/related', (req, res) => {
   res.send(req.params.product_id)
 });
