@@ -36,14 +36,26 @@ app.get('/products', (req, res) => {
 // Returns all product level information for a specified product id.
 app.get('/products/:product_id', (req, res) => {
   const id = [req.params.product_id];
-  // WHERE product_id = ${id}
   const queryText = `SELECT p.product_id, p.product_name, p.slogan, p.product_description, p.category, p.default_price,
-    f.feature_name, f.feature_value
+   json_object_agg(f.feature_name, f.feature_value) as features
     FROM products p, features f
-    WHERE p.product_id=$1 AND f.product_id=$1;`
+    WHERE p.product_id=$1 AND f.product_id=$1
+    GROUP BY p.product_id;`;
 
   client.query(queryText, id)
-    .then(dbRes => res.send(dbRes.rows))
+    // parse query response to match desired format
+    .then((dbRes) => {
+      let product = dbRes.rows[0];
+      let keys = Object.keys(product.features);
+      // convert features into an array of objects
+      product.features = keys.map((feature) => {
+        return {
+          'feature': feature,
+          'value': product.features[feature]
+        }
+      });
+      res.send(product);
+    })
     .catch(e => console.error(e))
 });
 
