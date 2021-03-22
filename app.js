@@ -66,7 +66,13 @@ app.get('/products/:product_id/styles', (req, res) => {
 
 // Returns the id's of products related to the product specified.
 app.get('/products/:product_id/related', (req, res) => {
-  res.send(req.params.product_id)
+  const id = [req.params.product_id];
+  const queryText = `SELECT array_agg(related_product_id) as related FROM related_products WHERE current_product_id = $1;`;
+
+  client.query(queryText, id)
+    .then((dbRes) => res.send(dbRes.rows[0].related))
+    .catch(e => console.error(e))
+
 });
 
 
