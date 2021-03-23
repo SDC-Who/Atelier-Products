@@ -1,7 +1,8 @@
-const { Client } = require('pg')
+const { Client } = require('pg');
+
 const client = new Client({
   user: 'aubreybachant',
   database: 'products',
-})
+});
 
-  module.exports = client;
+module.exports = client;
