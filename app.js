@@ -29,8 +29,8 @@ app.get('/products', (req, res) => {
   // select count number of products starting at page number intervals of count
   const queryText = `SELECT * FROM products LIMIT ${count} OFFSET ${(page * count) - count}`;
   client.query(queryText)
-    .then(dbRes => res.send(dbRes.rows))
-    .catch(e => console.error(e))
+    .then((dbRes) => res.send(dbRes.rows))
+    .catch((e) => console.error(e))
 });
 
 // Returns all product level information for a specified product id.
@@ -56,12 +56,49 @@ app.get('/products/:product_id', (req, res) => {
       });
       res.send(product);
     })
-    .catch(e => console.error(e))
+    .catch((e) => console.error(e))
 });
 
-// Returns the all styles available for the given product.
+/// Returns the all styles available for the given product.
 app.get('/products/:product_id/styles', (req, res) => {
-  res.send(req.params.product_id)
+  let id = [req.params.product_id];
+  let queryText = `SELECT s.style_id, s.style_name, s.original_price, s.sale_price, s.default_style
+  FROM styles s WHERE s.product_id = $1;`;
+
+  // for each style query for their photos
+  const getPhotos = async function () {
+    queryText = `SELECT photo_url, thumbnail_url FROM photos WHERE style_id = $1;`;
+    for (let i = 0; i < results.length; i++) {
+      // use style id to search for matching photos and skus
+      id = [results[i].style_id];
+      await client.query(queryText, id)
+        // add photos and skus to style in
+        .then((dbRes) => {
+          results[i].photos = dbRes.rows;
+        })
+    }
+  }
+
+   // for each style query for their skus
+   const getSkus = async function () {
+    queryText = `SELECT size, quantity FROM skus WHERE style_id = $1;`;
+    for (let i = 0; i < results.length; i++) {
+      // use style id to search for matching photos and skus
+      id = [results[i].style_id];
+      await client.query(queryText, id)
+        // add photos and skus to style in
+        .then((dbRes) => {
+          results[i].skus = dbRes.rows;
+        })
+    }
+  }
+
+  client.query(queryText, id)
+    .then((dbRes) => results = dbRes.rows)
+    .then(() => getPhotos())
+    .then(() => getSkus())
+    .then(() => res.send(results))
+    .catch((e) => console.error(e))
 });
 
 // Returns the id's of products related to the product specified.
@@ -72,7 +109,6 @@ app.get('/products/:product_id/related', (req, res) => {
   client.query(queryText, id)
     .then((dbRes) => res.send(dbRes.rows[0].related))
     .catch(e => console.error(e))
-
 });
 
 
