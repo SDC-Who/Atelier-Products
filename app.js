@@ -122,3 +122,5 @@ app.listen(port, () => {
   client.connect();
   console.log(`Atelier Products listening at http://localhost:${port}`);
 });
+
+module.exports = { app };
