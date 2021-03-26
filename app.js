@@ -18,8 +18,13 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // parse application/json
 app.use(bodyParser.json());
 
+client.connect()
+  .then(() => console.log('connected'))
+  .catch(err => console.log('connection error', err.stack))
+
 // Retrieves the list of products.
 app.get('/products', (req, res) => {
+  console.log('looking that up')
   let page = 1;
   let count = 5;
   // update page and count values if client sent params for page or count
@@ -119,7 +124,6 @@ app.get('/products/:product_id/related', (req, res) => {
 });
 
 app.listen(port, () => {
-  client.connect();
   console.log(`Atelier Products listening at http://localhost:${port}`);
 });
 
