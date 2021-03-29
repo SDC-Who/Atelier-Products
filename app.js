@@ -4,7 +4,7 @@
 
 const express = require('express');
 const bodyParser = require('body-parser');
-const client = require('./database');
+const pool = require('./database');
 
 const app = express();
 const port = 3000;
@@ -13,18 +13,22 @@ app.get('/', (req, res) => {
   res.send('Welcome to the Atelier Products API');
 });
 
+// Add verification token for loaderio
+app.get('/loaderio-f7e29b4d8a3d0f4ba6f0c0c7868c507b.txt', (req, res) => {
+  res.send('loaderio-f7e29b4d8a3d0f4ba6f0c0c7868c507b');
+});
+
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }));
 // parse application/json
 app.use(bodyParser.json());
 
-client.connect()
+pool.connect()
   .then(() => console.log('connected'))
-  .catch(err => console.log('connection error', err.stack))
+  .catch((err) => console.log('connection error', err.stack));
 
 // Retrieves the list of products.
 app.get('/products', (req, res) => {
-  console.log('looking that up')
   let page = 1;
   let count = 5;
   // update page and count values if client sent params for page or count
@@ -37,7 +41,7 @@ app.get('/products', (req, res) => {
 
   // select count number of products starting at page number intervals of count
   const queryText = `SELECT * FROM products LIMIT ${count} OFFSET ${(page * count) - count}`;
-  client.query(queryText)
+  pool.query(queryText)
     .then((dbRes) => res.send(dbRes.rows))
     .catch((e) => console.error(e));
 });
@@ -51,7 +55,7 @@ app.get('/products/:product_id', (req, res) => {
     WHERE p.product_id=$1 AND f.product_id=$1
     GROUP BY p.product_id;`;
 
-  client.query(queryText, id)
+  pool.query(queryText, id)
     // parse query response to match desired format
     .then((dbRes) => {
       const product = dbRes.rows[0];
@@ -68,7 +72,7 @@ app.get('/products/:product_id', (req, res) => {
     .catch((e) => console.error(e));
 });
 
-/// Returns the all styles available for the given product.
+// Returns the all styles available for the given product.
 app.get('/products/:product_id/styles', (req, res) => {
   let id = [req.params.product_id];
   let queryText = `SELECT s.style_id, s.style_name, s.original_price, s.sale_price, s.default_style
@@ -81,12 +85,19 @@ app.get('/products/:product_id/styles', (req, res) => {
     for (let i = 0; i < results.length; i += 1) {
       // use style id to search for matching photos and skus
       id = [results[i].style_id];
-      await client.query(queryText, id)
-        // add photos and skus to style in
-        .then((dbRes) => {
-          results[i].photos = dbRes.rows;
-        })
-        .catch((e) => console.error(e));
+      await pool
+        .connect()
+        .then((client) => client
+          .query(queryText, id)
+          // add photos and skus to style in
+          .then((dbRes) => {
+            client.release();
+            results[i].phots = dbRes.rows;
+          })
+          .catch((e) => {
+            client.release();
+            console.error(e.stack);
+          }));
     }
   }
 
@@ -96,21 +107,37 @@ app.get('/products/:product_id/styles', (req, res) => {
     for (let i = 0; i < results.length; i += 1) {
       // use style id to search for matching photos and skus
       id = [results[i].style_id];
-      await client.query(queryText, id)
-        // add photos and skus to style in
-        .then((dbRes) => {
-          results[i].skus = dbRes.rows;
-        })
-        .catch((e) => console.error(e));
+      await pool
+        .connect()
+        .then((client) => client
+          .query(queryText, id)
+          // add photos and skus to style in
+          .then((dbRes) => {
+            client.release();
+            results[i].skus = dbRes.rows;
+          })
+          .catch((e) => {
+            client.release();
+            console.error(e.stack);
+          }));
     }
   }
 
-  client.query(queryText, id)
-    .then((dbRes) => { results = dbRes.rows; })
-    .then(() => getPhotos())
-    .then(() => getSkus())
-    .then(() => res.send(results))
-    .catch((e) => console.error(e));
+  pool
+    .connect()
+    .then((client) => client
+      .query(queryText, id)
+      .then((dbRes) => {
+        client.release();
+        results = dbRes.rows;
+      })
+      .then(() => getPhotos())
+      .then(() => getSkus())
+      .then(() => res.send(results))
+      .catch((e) => {
+        client.release();
+        console.error(e.stack);
+      }));
 });
 
 // Returns the id's of products related to the product specified.
@@ -118,7 +145,7 @@ app.get('/products/:product_id/related', (req, res) => {
   const id = [req.params.product_id];
   const queryText = 'SELECT array_agg(related_product_id) as related FROM related_products WHERE current_product_id = $1;';
 
-  client.query(queryText, id)
+  pool.query(queryText, id)
     .then((dbRes) => res.send(dbRes.rows[0].related))
     .catch((e) => console.error(e));
 });
